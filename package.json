@@ -1,6 +1,6 @@
 {
   "name": "android-res",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "description": "Android resource resizing tool",
   "main": "index.js",
   "scripts": {
@@ -22,9 +22,9 @@
   },
   "homepage": "https://github.com/boundstate/android-res",
   "dependencies": {
-    "colors": "^1.1.0",
     "gm": "^1.18.1",
     "lodash": "^3.9.3",
+    "mkdirp": "^0.5.1",
     "q": "^1.4.1"
   }
 }

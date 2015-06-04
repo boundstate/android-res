@@ -1,7 +1,7 @@
 var _ = require('lodash');
-var colors = require('colors');
 var fs = require('fs');
 var gm = require('gm');
+var mkdirp = require('mkdirp');
 var path = require('path');
 var Q = require('q');
 
@@ -14,44 +14,25 @@ var sizes = [
 ];
 
 /**
- * @var {Object} console utils
- */
-var display = {
-  success: function (str) {
-    str = '✓  '.green + str;
-    console.log('  ' + str);
-  },
-  error: function (str) {
-    str = '✗  '.red + str;
-    console.log('  ' + str);
-  },
-  header: function (str) {
-    console.log('');
-    console.log(' ' + str.cyan.underline);
-    console.log('');
-  }
-};
-
-/**
  * Resizes and creates a new image.
  *
  * @param  {string} source filename
  * @param {string} dest filename
- * @param {object} size
- * @param {number} size.width
- * @param {number} size.height
+ * @param {number} width
+ * @param {number} height
  * @return {Promise}
  */
-function createImage(source, dest, size) {
+function createImage(source, dest, width, height) {
   var deferred = Q.defer();
 
+  mkdirp(path.dirname(dest));
+
   gm(source)
-    .resize(size.width, size.height)
+    .resize(width, height)
     .write(dest, function (err) {
       if (err) {
         deferred.reject(err);
       } else {
-        display.success(dest + ' created (' + size.width + '×' + size.height + ')');
         deferred.resolve();
       }
     });
@@ -63,36 +44,49 @@ function createImage(source, dest, size) {
  * Generates the images for a particular resource.
  * @param {string} source filename
  * @param {object} options
+ * @param {string} [options.sourceSize=xxxhdpi] (mdpi, hdpi, xhdpi, xxhdpi, or xxxhdpi)
  * @param {string} options.dest res folder
- * @param {number} options.sourceMultiplier
- * @param {array} [options.destSizes]
+ * @param {string[]} [options.destSizes]
  * @returns {Promise}
  */
 function generateResource(source, options) {
   var deferred = Q.defer();
 
-  gm(source).size(function (err, currentSize) {
+  if (!fs.existsSync(source)) {
+    deferred.reject(new Error(source + ' not found'));
+    return deferred.promise;
+  }
 
+  // Get current image dimensions
+  gm(source).size(function (err, sourceDimensions) {
     if (err) {
       deferred.reject(err);
-      return;
+      return deferred.promise;
     }
 
-    var deferreds = [];
+    var promises = [];
+    var sourceSize = _.find(sizes, {name: options.sourceSize}) || _.find(sizes, {name: 'xxxhdpi'});
 
     sizes.forEach(function (size) {
+      // Generate image for size if `options.destSizes` is not provided or contains this size
       if (!options.destSizes || _.contains(options.destSizes, size.name)) {
         var dest = options.dest + 'drawable-' + size.name + '/' + path.basename(source);
-        var multiplier = size.multiplier / options.sourceMultiplier;
+        var multiplier = size.multiplier / sourceSize.multiplier;
+        var width = Math.ceil(sourceDimensions.width * multiplier);
+        var height = Math.ceil(sourceDimensions.height * multiplier);
 
-        deferreds.push(createImage(source, dest, {
-          width: Math.ceil(currentSize.width * multiplier),
-          height: Math.ceil(currentSize.width * multiplier)
-        }));
+        var createImagePromise = createImage(source, dest, width, height);
+
+        // Notify about each image created
+        createImagePromise.then(function () {
+          deferred.notify({dest: dest, width: width, height: height});
+        });
+
+        promises.push(createImagePromise);
       }
     });
 
-    Q.all(deferreds)
+    Q.all(promises)
       .catch(function (err) {
         deferred.reject(err);
       })
@@ -105,35 +99,4 @@ function generateResource(source, options) {
   return deferred.promise;
 }
 
-/**
- * Generates resources.
- * @param {array} sources filenames
- * @param {object} options
- * @param {string} options.dest res folder
- * @param {string} [options.sourceSize=xxxhdpi] (mdpi, hdpi, xhdpi, xxhdpi, or xxxhdpi)
- * @param {string[]} [options.destSizes]
- * @return {Promise}
- */
-function generateResources(sources, options) {
-  var deferreds = [];
-  var sourceSize = _.find(sizes, {name: options.sourceSize}) || _.find(sizes, {name: 'xxxhdpi'});
-
-  display.header('Generating Android resources');
-
-  sources.forEach(function (source) {
-    if (!fs.existsSync(source)) {
-      display.error(source + ' not found');
-      return;
-    }
-
-    deferreds.push(generateResource(source, {
-      dest: options.dest,
-      sourceMultiplier: sourceSize.multiplier,
-      destSizes: options.destSizes
-    }));
-  });
-
-  return Q.all(deferreds);
-}
-
-module.exports = generateResources;
+module.exports = generateResource;
