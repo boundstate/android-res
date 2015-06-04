@@ -1,0 +1,30 @@
+{
+  "name": "android-res",
+  "version": "0.0.1",
+  "description": "Android resource resizing tool",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git@github.com:boundstate/android-res.git"
+  },
+  "keywords": [
+    "android",
+    "resource",
+    "resize"
+  ],
+  "author": "Bound State Software Inc <info@boundstatesofware.com>",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/boundstate/android-res/issues"
+  },
+  "homepage": "https://github.com/boundstate/android-res",
+  "dependencies": {
+    "colors": "^1.1.0",
+    "gm": "^1.18.1",
+    "lodash": "^3.9.3",
+    "q": "^1.4.1"
+  }
+}
