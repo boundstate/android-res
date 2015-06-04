@@ -2,6 +2,7 @@ var _ = require('lodash');
 var colors = require('colors');
 var fs = require('fs');
 var gm = require('gm');
+var path = require('path');
 var Q = require('q');
 
 var sizes = [
@@ -81,7 +82,7 @@ function generateResource(source, options) {
 
     sizes.forEach(function (size) {
       if (!options.destSizes || _.contains(options.destSizes, size.name)) {
-        var dest = options.dest + 'drawable-' + size.name + '/' + source;
+        var dest = options.dest + 'drawable-' + size.name + '/' + path.basename(source);
         var multiplier = size.multiplier / options.sourceMultiplier;
 
         deferreds.push(createImage(source, dest, {
